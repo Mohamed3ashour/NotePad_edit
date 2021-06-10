@@ -227,7 +227,7 @@ JColorChooser bcolorChooser=null;
 JColorChooser fcolorChooser=null;
 JDialog backgroundDialog=null;
 JDialog foregroundDialog=null;
-JMenuItem cutItem,copyItem, deleteItem, findItem, findNextItem, replaceItem, gotoItem, selectAllItem;
+JMenuItem UndoItem, RedoItem , cutItem,copyItem, deleteItem, findItem, findNextItem, replaceItem, gotoItem, selectAllItem;
 /****************************/
 Notepad()
 {
@@ -334,8 +334,11 @@ JOptionPane.showMessageDialog(
 	"Bad Printer",
 	JOptionPane.INFORMATION_MESSAGE
 	);
-//else if(cmdText.equals(editUndo))
-//	ta.
+else if(cmdText.equals(editUndo))
+	ta.Undo();
+	
+	else if(cmdText.equals(editRedo))
+		ta.Redo();	
 
 ////////////////////////////////////
 else if(cmdText.equals(editCut))
@@ -526,8 +529,12 @@ createMenuItem(filePrint,KeyEvent.VK_P,fileMenu,KeyEvent.VK_P,this);
 fileMenu.addSeparator();
 createMenuItem(fileExit,KeyEvent.VK_X,fileMenu,this);
 
-temp=createMenuItem(editUndo,KeyEvent.VK_U,editMenu,KeyEvent.VK_Z,this);
-temp.setEnabled(false);
+UndoItem=createMenuItem(editUndo,KeyEvent.VK_U,editMenu,KeyEvent.VK_Z,this);
+UndoItem.setEnabled(true);
+editMenu.addSeparator();
+
+RedoItem=createMenuItem(editRedo,KeyEvent.VK_U,editMenu,KeyEvent.VK_Y,this);
+RedoItem.setEnabled(true);
 editMenu.addSeparator();
 
 cutItem=createMenuItem(editCut,KeyEvent.VK_T,editMenu,KeyEvent.VK_X,this);
@@ -583,7 +590,7 @@ MenuListener editMenuListener=new MenuListener()
 	gotoItem.setEnabled(true);
 	}
 	if(Notepad.this.ta.getSelectionStart()==ta.getSelectionEnd())
-	{
+	{	
 	cutItem.setEnabled(false);
 	copyItem.setEnabled(false);
 	deleteItem.setEnabled(false);
@@ -627,6 +634,8 @@ final String filePrint="Print";
 final String fileExit="Exit";
 
 final String editUndo="Undo";
+final String editRedo="Redo";
+
 final String editCut="Cut";
 final String editCopy="Copy";
 final String editPaste="Paste";
