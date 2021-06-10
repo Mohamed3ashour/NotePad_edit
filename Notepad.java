@@ -5,6 +5,11 @@ import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
 import javax.swing.event.*;
+import javax.swing.event.UndoableEditEvent;
+import javax.swing.event.UndoableEditListener;
+import javax.swing.undo.CannotRedoException;
+import javax.swing.undo.CannotUndoException;
+import javax.swing.undo.UndoManager;
 //import p1.FontChooser;
 //import p1.FontDialog;
 //import p1.FindDialog;
@@ -14,7 +19,6 @@ import javax.swing.event.*;
 class FileOperation
 {
 Notepad npd;
-
 boolean saved;
 boolean newFileFlag;
 String fileName;
@@ -211,8 +215,8 @@ public class Notepad  implements ActionListener, MenuConstants
 
 JFrame f;
 JTextArea ta;
+UndoManager udm;
 JLabel statusBar;
-
 private String fileName="Untitled";
 private boolean saved=true;
 String applicationName="Javapad";
@@ -227,12 +231,13 @@ JColorChooser bcolorChooser=null;
 JColorChooser fcolorChooser=null;
 JDialog backgroundDialog=null;
 JDialog foregroundDialog=null;
-JMenuItem UndoItem, RedoItem , cutItem,copyItem, deleteItem, findItem, findNextItem, replaceItem, gotoItem, selectAllItem;
+JMenuItem cutItem,copyItem, deleteItem, findItem, findNextItem, replaceItem, gotoItem, selectAllItem, undoItem, redoItem;
 /****************************/
 Notepad()
 {
 f=new JFrame(fileName+" - "+applicationName);
 ta=new JTextArea(30,60);
+udm = new UndoManager();
 statusBar=new JLabel("||       Ln 1, Col 1  ",JLabel.RIGHT);
 f.add(new JScrollPane(ta),BorderLayout.CENTER);
 f.add(statusBar,BorderLayout.SOUTH);
@@ -247,7 +252,6 @@ f.setLocation(150,50);
 f.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
 
 fileHandler=new FileOperation(this);
-
 /////////////////////
 
 ta.addCaretListener(
@@ -268,6 +272,7 @@ statusBar.setText("||       Ln "+(lineNumber+1)+", Col "+(column+1));
 }
 });
 //////////////////
+UndoManager udm = new UndoManager();
 DocumentListener myListener = new DocumentListener()
 {
 public void changedUpdate(DocumentEvent e){fileHandler.saved=false;}
@@ -275,6 +280,23 @@ public void removeUpdate(DocumentEvent e){fileHandler.saved=false;}
 public void insertUpdate(DocumentEvent e){fileHandler.saved=false;}
 };
 ta.getDocument().addDocumentListener(myListener);
+
+ta.getDocument().addUndoableEditListener(new UndoableEditListener() {
+    @Override
+    public void undoableEditHappened(UndoableEditEvent e) {
+        udm.addEdit(e.getEdit());
+    }
+});
+undoItem.addActionListener((ActionEvent e) -> {
+    try {
+        udm.undo();
+    } catch (CannotUndoException cue) {}
+});
+redoItem.addActionListener((ActionEvent e) -> {
+    try {
+        udm.redo();
+    } catch (CannotRedoException cre) {}
+});
 /////////
 WindowListener frameClose=new WindowAdapter()
 {
@@ -334,11 +356,6 @@ JOptionPane.showMessageDialog(
 	"Bad Printer",
 	JOptionPane.INFORMATION_MESSAGE
 	);
-else if(cmdText.equals(editUndo))
-	ta.Undo();
-	
-	else if(cmdText.equals(editRedo))
-		ta.Redo();	
 
 ////////////////////////////////////
 else if(cmdText.equals(editCut))
@@ -349,6 +366,36 @@ else if(cmdText.equals(editCopy))
 ////////////////////////////////////
 else if(cmdText.equals(editPaste))
 	ta.paste();
+////////////////////////////////////
+else if(cmdText.equals(editUndo))
+{
+	ta.getActionMap().put("Undo",
+    new AbstractAction("Undo") {
+        public void actionPerformed(ActionEvent e) {
+            try {
+                if (udm.canUndo()) {
+                    udm.undo();
+                }
+            } catch (CannotUndoException eu) {
+            }
+        }
+   });
+}
+else if(cmdText.equals(editRedo))
+{
+	ta.getActionMap().put("Redo",
+    new AbstractAction("Redo") {
+        public void actionPerformed(ActionEvent e) {
+            try {
+                if (udm.canRedo()) {
+                    udm.redo();
+                }
+            } catch (CannotUndoException eu) {
+            }
+        }
+   });
+}
+
 ////////////////////////////////////
 else if(cmdText.equals(editDelete))
 	ta.replaceSelection("");
@@ -529,14 +576,9 @@ createMenuItem(filePrint,KeyEvent.VK_P,fileMenu,KeyEvent.VK_P,this);
 fileMenu.addSeparator();
 createMenuItem(fileExit,KeyEvent.VK_X,fileMenu,this);
 
-UndoItem=createMenuItem(editUndo,KeyEvent.VK_U,editMenu,KeyEvent.VK_Z,this);
-UndoItem.setEnabled(true);
+undoItem=createMenuItem(editUndo,KeyEvent.VK_U,editMenu,KeyEvent.VK_Z,this);
+redoItem=createMenuItem(editRedo,KeyEvent.VK_Y,editMenu,KeyEvent.VK_Y,this);
 editMenu.addSeparator();
-
-RedoItem=createMenuItem(editRedo,KeyEvent.VK_U,editMenu,KeyEvent.VK_Y,this);
-RedoItem.setEnabled(true);
-editMenu.addSeparator();
-
 cutItem=createMenuItem(editCut,KeyEvent.VK_T,editMenu,KeyEvent.VK_X,this);
 copyItem=createMenuItem(editCopy,KeyEvent.VK_C,editMenu,KeyEvent.VK_C,this);
 createMenuItem(editPaste,KeyEvent.VK_P,editMenu,KeyEvent.VK_V,this);
@@ -590,7 +632,7 @@ MenuListener editMenuListener=new MenuListener()
 	gotoItem.setEnabled(true);
 	}
 	if(Notepad.this.ta.getSelectionStart()==ta.getSelectionEnd())
-	{	
+	{
 	cutItem.setEnabled(false);
 	copyItem.setEnabled(false);
 	deleteItem.setEnabled(false);
@@ -635,7 +677,6 @@ final String fileExit="Exit";
 
 final String editUndo="Undo";
 final String editRedo="Redo";
-
 final String editCut="Cut";
 final String editCopy="Copy";
 final String editPaste="Paste";
